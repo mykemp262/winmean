@@ -7,17 +7,19 @@ $chocolateyExe = "C:\ProgramData\chocolatey\bin\choco.exe"
 $mongoBin = "C:\MongoDB\2.6.1\bin\mongo.exe"
 $nodeBin = "C:\Program Files\nodejs\node.exe"
 $gitBin = "c:\Program Files (x86)\Git\cmd\git.exe"
-$expressBin = "C:\Users\mkempa\AppData\Roaming\npm\node_modules\express\lib\express.js"
+$expressBin = "$Env:USERPROFILE\AppData\Roaming\npm\node_modules\express\lib\express.js"
+$expressExe = "$Env:USERPROFILE\AppData\Roaming\npm\node_modules\express-generator\bin\express"
 $bowerBin = "$Env:USERPROFILE\AppData\Roaming\npm\bower.cmd"
 $gruntBin = "$Env:USERPROFILE\AppData\Roaming\npm\node_modules\grunt-cli\bin\grunt"
-$bootstrapBin = ""
-$angularBin = ""
+$bootstrapBin = "c:\foobar"
+$angularBin = "c:\foobar"
 $sublimeBin = "C:\Program Files\Sublime Text 3\sublime_text.exe"
 
 
 # Sample App Configuration Parameters: 
 $sampleAppBaseDir = "c:\mean"
 $sampleAppDir = "c:\mean\testapp"
+$sampleExpress = "testapp"
 
 
 # Test Parameters
@@ -60,6 +62,23 @@ else
 
 Write-Host "Testing: "$chocolateyExe
 Assert(Test-Path $chocolateyExe | Select-String "True" -quiet)
+Write-Host "`n"
+
+# Install Sublime Text Editor for Development
+$isSublime = Test-Path $sublimeBin
+
+if($isSublime -eq $True)
+{
+    Write-Host "Sublime is installed skipping to next step `n"
+}
+else
+{
+    Invoke-Expression "$chocolateyExe  install sublimetext3 --confirm --force"
+}
+
+Write-Host "Testing: "$sublimeBin
+Assert(Test-Path $sublimeBin | Select-String "True" -quiet)
+Write-Host "`n"
 
 # Install MongoDB
 $isMongo = Test-Path $mongoBin
@@ -75,6 +94,8 @@ else
 
 Write-Host "Testing: "$mongoBin
 Assert(Test-Path $mongoBin | Select-String "True" -quiet)
+Write-Host "`n"
+
 
 # Install NodeJS
 $isNode = Test-Path $nodeBin
@@ -97,6 +118,7 @@ else
 
 Write-Host "Testing: "$nodeBin
 Assert(Test-Path $nodeBin | Select-String "True" -quiet)
+Write-Host "`n"
 
 
 # Install Git
@@ -117,6 +139,8 @@ else
 
 Write-Host "Testing: "$gitBin
 Assert(Test-Path $gitBin | Select-String "True" -quiet)
+Write-Host "`n"
+
 
 # Install Bower (Web Package Manager using NPM)
 $isBower = Test-Path $bowerBin
@@ -129,10 +153,12 @@ else
 {
     Write-Host "Installing Bower..."
     Invoke-Expression "& 'C:\Program Files\nodejs\npm' install bower -g"
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 }
 
 Write-Host "Testing: "$bowerBin
 Assert(Test-Path $bowerBin | Select-String "True" -quiet)
+Write-Host "`n"
 
 
 # Install Express (Express JS Framework using NPM )
@@ -144,11 +170,33 @@ if($isExpress -eq $True)
 }
 else
 {
+    Write-Host "Installing Express"
     Invoke-Expression "& 'C:\Program Files\nodejs\npm' install express -g"
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 }
 
 Write-Host "Testing: "$expressBin
 Assert(Test-Path $expressBin | Select-String "True" -quiet)
+Write-Host "`n"
+
+
+# Install Express Generator
+$isExpressGen = Test-Path $expressExe
+
+if($isExpressGen -eq $True)
+{
+    Write-Host "Express Generator is installed skipping to next step `n"
+}
+else
+{
+    Write-Host "Installing Express"
+    Invoke-Expression "& 'C:\Program Files\nodejs\npm' install express-generator -g"
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+}
+
+Write-Host "Testing: "$expressBin
+Assert(Test-Path $expressExe | Select-String "True" -quiet)
+Write-Host "`n"
 
 
 # Install Grunt (Install Grunt JS Task Manager/CLI using NPM )
@@ -161,11 +209,53 @@ if($isGrunt -eq $True)
 else
 {
     Invoke-Expression "& 'C:\Program Files\nodejs\npm' install grunt-cli -g"
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 }
 
 Write-Host "Testing: "$gruntBin
 Assert(Test-Path $gruntBin | Select-String "True" -quiet)
+Write-Host "`n"
 
+
+# FIXME: Do Stuff here - change to working directory, do some Express Setup, install Angular, install Bootstrap and Configure
+
+# Set up Sample App Directory Structure (if needed).
+
+# Check to see if Base App Dirctory Exists
+$isBase = Test-Path $sampleAppBaseDir
+
+if($isBase -eq $True)
+{
+    Write-Host $sampleAppBaseDir " Exits Creating... " 
+    Set-Location -Path $sampleAppBaseDir
+    $currentDir = Get-Location
+    Write-Host "Working director is now: " $currentDir
+}
+else
+{
+    Write-Host "Creating... " $sampleAppBaseDir
+    New-Item -ItemType Directory -Force -Path $sampleAppBaseDir
+    Set-Location -Path $sampleAppBaseDir
+    $currentDir = Get-Location
+    Write-Host "Working director is now: " $currentDir
+}
+
+#Write-Host "Testing to ensure that we are in: "$sampleAppDir
+#Assert($currentDir.tostring() | Select-String $sampleAppDir -quiet)
+#Write-Host "`n"
+
+
+# Create Express App using Express generator
+$isExpressAppReady = Test-Path $sampleAppDir
+
+if($isExpressAppReady -eq $True)
+{
+    Write-Host "Express has been run" # still working on this           
+}
+else
+{
+    #Invoke-Expression "$expressExe $sampleExpress"  # this doesn't work.
+}
 
 # Install Angular using Bower Web Package Manager
 $isAngular = Test-Path $angularBin
@@ -181,6 +271,7 @@ else
 
 Write-Host "Testing: "$angularBin
 Assert(Test-Path $angularBin | Select-String "True" -quiet)
+Write-Host "`n"
 
 
 # Install Bootstrap using Bower
@@ -198,21 +289,9 @@ else
 
 Write-Host "Testing: "$bootstrapBin
 Assert(Test-Path $bootstrapBin | Select-String "True" -quiet)
+Write-Host "`n"
 
-# Install Sublime Text Editor for Development
-$isSublime = Test-Path $sublimeBin
 
-if($isSublime -eq $True)
-{
-    Write-Host "Sublime is installed skipping to next step `n"
-}
-else
-{
-    Invoke-Expression "$chocolateyExe  install sublimetext3 --confirm --force"
-}
-
-Write-Host "Testing: "$sublimeBin
-Assert(Test-Path $sublimeBin | Select-String "True" -quiet)
 
 
 
