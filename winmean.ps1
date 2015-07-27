@@ -11,15 +11,16 @@ $expressBin = "$Env:USERPROFILE\AppData\Roaming\npm\node_modules\express\lib\exp
 $expressExe = "$Env:USERPROFILE\AppData\Roaming\npm\node_modules\express-generator\bin\express"
 $bowerBin = "$Env:USERPROFILE\AppData\Roaming\npm\bower.cmd"
 $gruntBin = "$Env:USERPROFILE\AppData\Roaming\npm\node_modules\grunt-cli\bin\grunt"
-$bootstrapBin = "c:\foobar"
-$angularBin = "c:\foobar"
+$bootstrapBin = "C:\mean\testApp\bower_components\bootstrap-css\bower.json"
+$angularBin = "C:\mean\testApp\bower_components\angular\angular.js"
 $sublimeBin = "C:\Program Files\Sublime Text 3\sublime_text.exe"
 
+$npmBase = "$Env:USERPROFILE\AppData\Roaming\npm"
 
 # Sample App Configuration Parameters: 
 $sampleAppBaseDir = "c:\mean"
 $sampleAppDir = "c:\mean\testapp"
-$sampleExpress = "testapp"
+$sampleExpress = "testApp"
 
 
 # Test Parameters
@@ -42,6 +43,7 @@ function Assert($Value)
 }
 
 
+
 # Install Chocolatey Packager Manager if Needed
 $isChocolatey = Test-Path $chocolateyExe
 
@@ -57,7 +59,7 @@ else
     
     $newPath=$oldPath+";C:\ProgramData\chocolatey\bin"
     
-    SetItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH -Value $newPath
+    Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH -Value $newPath
 }
 
 Write-Host "Testing: "$chocolateyExe
@@ -198,6 +200,36 @@ Write-Host "Testing: "$expressBin
 Assert(Test-Path $expressExe | Select-String "True" -quiet)
 Write-Host "`n"
 
+# Set Express in path
+
+$oldPath=(Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH).Path
+
+
+$isExpressInPath = $oldPath | Select-String "C:\\Users\\mkempa\\AppData\\Roaming\\npm" -quiet
+
+
+
+if($isExpressInPath -eq $True)
+{
+    
+    Write-Host "Express is in Path moving to next step..."
+
+}
+
+else
+
+{
+
+    Write-Host "Adding C:\Users\mkempa\AppData\Roaming\npm to path so that Express will work"
+    $newPath=$oldPath+";C:\Users\mkempa\AppData\Roaming\npm"
+    Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH -Value $newPath
+
+
+    Write-Host "Reloading Environment Path..."
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+
+}
+
 
 # Install Grunt (Install Grunt JS Task Manager/CLI using NPM )
 $isGrunt = Test-Path $gruntBin
@@ -216,9 +248,6 @@ Write-Host "Testing: "$gruntBin
 Assert(Test-Path $gruntBin | Select-String "True" -quiet)
 Write-Host "`n"
 
-
-# FIXME: Do Stuff here - change to working directory, do some Express Setup, install Angular, install Bootstrap and Configure
-
 # Set up Sample App Directory Structure (if needed).
 
 # Check to see if Base App Dirctory Exists
@@ -226,10 +255,10 @@ $isBase = Test-Path $sampleAppBaseDir
 
 if($isBase -eq $True)
 {
-    Write-Host $sampleAppBaseDir " Exits Creating... " 
+    Write-Host $sampleAppBaseDir " Exits Changing to... " $sampleAppBaseDir 
     Set-Location -Path $sampleAppBaseDir
     $currentDir = Get-Location
-    Write-Host "Working director is now: " $currentDir
+    Write-Host "Working directory is now: " $currentDir
 }
 else
 {
@@ -237,12 +266,8 @@ else
     New-Item -ItemType Directory -Force -Path $sampleAppBaseDir
     Set-Location -Path $sampleAppBaseDir
     $currentDir = Get-Location
-    Write-Host "Working director is now: " $currentDir
+    Write-Host "Working directory is now: " $currentDir
 }
-
-#Write-Host "Testing to ensure that we are in: "$sampleAppDir
-#Assert($currentDir.tostring() | Select-String $sampleAppDir -quiet)
-#Write-Host "`n"
 
 
 # Create Express App using Express generator
@@ -250,11 +275,27 @@ $isExpressAppReady = Test-Path $sampleAppDir
 
 if($isExpressAppReady -eq $True)
 {
-    Write-Host "Express has been run" # still working on this           
+    Write-Host "Express has been run"          
 }
 else
 {
-    #Invoke-Expression "$expressExe $sampleExpress"  # this doesn't work.
+    Invoke-Expression "npm ls -g --depth=0"
+    Write-Host $env:Path
+    Invoke-Expression "express $sampleExpress" 
+}
+
+$isBase = Test-Path $sampleAppDir
+
+if($isBase -eq $True)
+{
+    Write-Host $sampleAppDir " Exits Changing to... " $sampleAppDir 
+    Set-Location -Path $sampleAppDir
+    $currentDir = Get-Location
+    Write-Host "Working directory is now: " $currentDir
+}
+else
+{
+    Write-Host express did not configure APP correctly - installation will continue but site will most likely not work.
 }
 
 # Install Angular using Bower Web Package Manager
@@ -291,44 +332,38 @@ Write-Host "Testing: "$bootstrapBin
 Assert(Test-Path $bootstrapBin | Select-String "True" -quiet)
 Write-Host "`n"
 
+# Test to see if we need to configure Express
+$isExpressRunning = Test-NetConnection -ComputerName localhost -Port 3000 -InformationLevel Quiet
 
+if($isExpressRunning -eq $True)
+{
+    Write-Host "Moving on to tests..."
+}
+else
+{
+    Write-Host "Setting up Express App"
+    Invoke-Expression "npm install"
+    Invoke-Expression "SET DEBUG=testApp:*" 
+    Start-Process npm start
+}    
 
-
-
-
-
-#TODO Setup Test Site.
-
-
-
-
-
-
-
-
-
-
-
-
-# FIXME!!!! LEAVING IN PLACE FOR NOW TO STUB OUT TEST CODE
 # Test Site
-#$testFileExists = Test-Path $testFile
+$testFileExists = Test-Path $testExpressFile
 
-#if($testFileExists -eq $True)
-#{
-#    Invoke-Expression "del $testFile"
-#}
+if($testFileExists -eq $True)
+{
+    Invoke-Expression "del $testExpressFile"
+}
 
-#Write-Host "Test Install `n`n`n"
+Invoke-WebRequest $testExpressURL -OutFile $testExpressFile
 
-#Invoke-WebRequest $testURL -OutFile $testFile
+Write-Host "Test for Express: " 
+Assert(Get-Content $testExpressFile | Select-String "Express" -quiet)
 
-#Write-Host "Test for Hello, World: " 
-#Assert(Get-Content $testFile | Select-String $testHello -quiet)
-#Write-Host "Test for hello Jsp Link: " 
-#Assert(Get-Content $testFile | Select-String $testHello -quiet)
-#Write-Host "Test for hello Servlett Link: " 
-#Assert(Get-Content $testFile | Select-String $testHello -quiet)
+Write-Host "Welcome to Express: " 
+Assert(Get-Content $testExpressFile | Select-String "Welcome to Express" -quiet)
+
+Write-Host "All of the MEAN Components have been setup, and Express has been tested"
 
 # Cleanup Test File
-#Invoke-Expression "del $testFile"
+Invoke-Expression "del $testExpressFile"
